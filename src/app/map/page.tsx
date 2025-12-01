@@ -845,7 +845,7 @@ export default function MapPage() {
   }
 
   return (
-    <main className="h-[calc(100vh-0px)] relative">
+    <main className="relative h-[calc(100vh-4rem)]">
       {error ? (
         <div className="p-6 text-yellow-800 bg-yellow-100 border border-yellow-200 rounded-md m-4">
           {error}
