@@ -217,9 +217,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Main content – note conditional bottom padding (no extra pb on map page) */}
-        <main className={`pt-20 md:pt-24 ${isMapPage ? "pb-0" : "pb-16"} flex-1`}>
-          {children}
-        </main>
+        <main
+  className={`${
+    isMapPage ? "pt-16 pb-0" : "pt-20 md:pt-24 pb-16"
+  } flex-1`}
+>
+  {children}
+</main>
+
 
         {/* Footer with APG GC branding – hidden on /map so it doesn't affect the map layout */}
         {!isMapPage && (
