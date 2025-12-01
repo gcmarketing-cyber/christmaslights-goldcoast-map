@@ -3,10 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function GET(
   _req: NextRequest,
-  context: { params?: { id?: string | string[] } }
+  context: any
 ) {
   // 👇 Pull id out safely regardless of how Next passes it
-  const raw = context.params?.id;
+  const raw = context?.params?.id;
 
   let id = "";
   if (typeof raw === "string") {
