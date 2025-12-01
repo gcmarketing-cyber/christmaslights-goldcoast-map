@@ -4,9 +4,9 @@ import "./globals.css";
 import Link from "next/link";
 import { useEffect, useState, ReactNode } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { Logo } from "@/components/Logo";
 import Image from "next/image";
 import MapLogo from "@/components/MapLogo";
+import { usePathname } from "next/navigation";
 
 const ADMIN_EMAILS = [
   "goldcoast@allpropertiesgroup.com.au",
@@ -16,6 +16,8 @@ const ADMIN_EMAILS = [
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+  const isMapPage = pathname === "/map";
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -36,7 +38,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     window.location.href = "/map";
   }
 
-  // Desktop main links only – we’ll build the mobile menu separately
   const mainLinks = (
     <>
       <Link href="/map" className="px-2 py-1 hover:underline">
@@ -55,7 +56,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#f7f7f7]">
+      <body className="min-h-screen bg-[#f7f7f7] flex flex-col">
+        {/* Fixed header */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
           <div className="mx-auto max-w-6xl h-16 px-6 flex items-center justify-between">
             {/* Logo (clickable) */}
@@ -103,7 +105,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
             {/* Mobile hamburger */}
             <button
-             className="md:hidden inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded bg-gray-200 hover:bg-gray-300 transition"
+              className="md:hidden inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded bg-gray-200 hover:bg-gray-300 transition"
               onClick={() => setMobileOpen((o) => !o)}
             >
               <span className="sr-only">Toggle menu</span>
@@ -214,7 +216,53 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           )}
         </header>
 
-        {children}
+        {/* Main content – note conditional bottom padding (no extra pb on map page) */}
+        <main className={`pt-20 md:pt-24 ${isMapPage ? "pb-0" : "pb-16"} flex-1`}>
+          {children}
+        </main>
+
+        {/* Footer with APG GC branding – hidden on /map so it doesn't affect the map layout */}
+        {!isMapPage && (
+          <footer className="border-t bg-white/95 backdrop-blur-sm text-xs text-gray-600">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p className="text-center sm:text-left">
+                Christmas Lights Gold Coast ·{" "}
+                <span className="text-gray-800">
+                  A free community project by{" "}
+                  <span className="font-semibold">
+                    All Properties Group Gold Coast
+                  </span>
+                </span>
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                  <a
+                    href="https://www.facebook.com/GoldCoast.APG/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                  >
+                    Facebook
+                  </a>
+                  <a
+                    href="https://www.instagram.com/goldcoast.apg/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                  >
+                    Instagram
+                  </a>
+                </div>
+                <Image
+                  src="/logos/apg-gc-long-orange-b.svg"
+                  alt="All Properties Group Gold Coast"
+                  width={150}
+                  height={40}
+                />
+              </div>
+            </div>
+          </footer>
+        )}
       </body>
     </html>
   );

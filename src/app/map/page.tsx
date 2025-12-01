@@ -350,19 +350,49 @@ export default function MapPage() {
             "run-btn"
           ) as HTMLButtonElement | null;
 
-          // Vote button
-          if (voteBtn && count) {
-            voteBtn.addEventListener("click", async () => {
-              voteBtn.disabled = true;
+        // Vote button (toggle + remember previous votes)
+        if (voteBtn && count) {
+          let hasVoted = false;
 
-              const { data: uData } = await supabase.auth.getUser();
-              const user = uData.user;
-              if (!user) {
-                alert("Please sign in first on the Login page to vote.");
-                voteBtn.disabled = false;
-                return;
-              }
+          // 1) On popup open, check if the user has already voted for this place
+          (async () => {
+            const { data: uData } = await supabase.auth.getUser();
+            const user = uData.user;
+            if (!user) {
+              // Not logged in → leave button as default "VOTE"
+              return;
+            }
 
+            const { data: existingVote } = await supabase
+              .from("votes")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("place_id", opts.place_id)
+              .maybeSingle();
+
+            if (existingVote) {
+              hasVoted = true;
+              voteBtn.textContent = "Voted";
+              voteBtn.style.backgroundColor = "#c4142d";
+              voteBtn.style.color = "#ffffff";
+              voteBtn.style.borderColor = "#c4142d";
+            }
+          })();
+
+          // 2) Clicking the button toggles vote on/off
+          voteBtn.addEventListener("click", async () => {
+            voteBtn.disabled = true;
+
+            const { data: uData } = await supabase.auth.getUser();
+            const user = uData.user;
+            if (!user) {
+              alert("Please log in on the Login page before voting.");
+              voteBtn.disabled = false;
+              return;
+            }
+
+            if (!hasVoted) {
+              // Add vote
               const { error } = await supabase.from("votes").insert({
                 user_id: user.id,
                 place_id: opts.place_id,
@@ -370,24 +400,60 @@ export default function MapPage() {
 
               if (error && !error.message.includes("duplicate key")) {
                 console.error("Vote error:", error.message);
-                alert("Could not save your vote.");
+                alert("Could not save your vote. Please try again.");
                 voteBtn.disabled = false;
                 return;
               }
 
-              const { data: vcData, error: vcErr } = await supabase
-                .from("vote_counts")
-                .select("votes")
-                .eq("place_id", opts.place_id)
-                .maybeSingle();
+              hasVoted = true;
+            } else {
+              // Remove vote
+              const { error } = await supabase
+                .from("votes")
+                .delete()
+                .eq("user_id", user.id)
+                .eq("place_id", opts.place_id);
 
-              if (!vcErr && vcData && typeof vcData.votes === "number") {
-                count.textContent = `${vcData.votes} votes`;
+              if (error) {
+                console.error("Unvote error:", error.message);
+                alert("Could not remove your vote. Please try again.");
+                voteBtn.disabled = false;
+                return;
               }
 
-              voteBtn.disabled = false;
-            });
-          }
+              hasVoted = false;
+            }
+
+            // Get the latest vote count
+            const { data: vcData, error: vcErr } = await supabase
+              .from("vote_counts")
+              .select("votes")
+              .eq("place_id", opts.place_id)
+              .maybeSingle();
+
+            if (!vcErr && vcData && typeof vcData.votes === "number") {
+              count.textContent =
+                vcData.votes === 1 ? "1 vote" : `${vcData.votes} votes`;
+            }
+
+            // Update button style + text based on new state
+            if (hasVoted) {
+              voteBtn.textContent = "VOTED";
+              voteBtn.style.backgroundColor = "#c4142d";
+              voteBtn.style.color = "#ffffff";
+              voteBtn.style.borderColor = "#c4142d";
+            } else {
+              voteBtn.textContent = "VOTE";
+              voteBtn.style.backgroundColor = "#ffffff";
+              voteBtn.style.color = "#000000";
+              voteBtn.style.borderColor = "#000000";
+            }
+
+            voteBtn.disabled = false;
+          });
+        }
+
+
 
           // Run button
           if (runBtn) {

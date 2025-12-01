@@ -17,16 +17,6 @@ export function Logo({
 }: LogoProps) {
   let src = "/logos/apg-gc-long-orange-b.svg";
 
-  if (variant === "circle" && theme === "light") {
-    src = "/logos/apg-gc-circle-orange.svg";
-  } else if (variant === "circle" && theme === "dark") {
-    src = "/logos/apg-gc-circle-orange-b.svg";
-  } else if (variant === "long" && theme === "dark") {
-    src = "/logos/apg-gc-long-orange-w.svg";
-  } else if (variant === "long" && theme === "light") {
-    src = "/logos/apg-gc-long-orange-b.svg";
-  }
-
   const width =
     size === "sm" ? 120 : size === "lg" ? 220 : 170;
 

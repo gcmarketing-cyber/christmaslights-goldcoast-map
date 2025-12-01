@@ -135,10 +135,10 @@ export default function AddPage() {
   return (
     <main className="max-w-3xl mx-auto p-6">
       <div className="flex justify-center mb-4">
-        <Logo variant="circle" theme="light" size="sm" />
+
       </div>
 
-      <h1 className="text-2xl font-semibold mb-2">Add a Display</h1>
+      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#b00824] mb-4 text-center uppercase">Add a Display</h1>
       <p className="text-sm text-gray-700 mb-4">
         You don&apos;t need an account to add a display, but we do need your
         contact details so we can get in touch if your display wins a prize.
