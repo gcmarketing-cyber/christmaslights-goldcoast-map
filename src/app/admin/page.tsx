@@ -13,8 +13,6 @@ type AdminPlace = {
   open_end: string | null;
   hide_number: boolean | null;
   created_at: string;
-
-  // Contact info
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
@@ -30,7 +28,9 @@ export default function AdminPage() {
 
   // 🔎 Search + Filters
   const [search, setSearch] = useState("");
-  const [filterSeason, setFilterSeason] = useState<"all" | "christmas" | "halloween">("all");
+  const [filterSeason, setFilterSeason] = useState<
+    "all" | "christmas" | "halloween"
+  >("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [filterSuburb, setFilterSuburb] = useState<string>("all");
 
@@ -38,15 +38,29 @@ export default function AdminPage() {
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(true);
 
+  // 🔄 Load data from /api/admin/list with safe JSON parsing
   async function load() {
     setLoading(true);
     setErr(null);
+
     try {
       const res = await fetch("/api/admin/list");
-      const body = await res.json();
 
-      if (!res.ok) {
-        setErr(body.error || "Failed to load admin list.");
+      let body: any = null;
+      try {
+        body = await res.json();
+      } catch (e) {
+        console.error(
+          "Failed to parse /api/admin/list response as JSON",
+          e
+        );
+      }
+
+      if (!res.ok || !body) {
+        setErr(
+          body?.error ||
+            `Failed to load admin list (status ${res.status}).`
+        );
         setLoading(false);
         return;
       }
@@ -60,19 +74,32 @@ export default function AdminPage() {
     }
   }
 
+  // ✅ Approve / Reject using /api/admin/update-status – no blind res.json()
   async function updateStatus(id: string, status: "approved" | "rejected") {
     setErr(null);
     setMsg(null);
+
     try {
       const res = await fetch("/api/admin/update-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status }),
       });
-      const body = await res.json();
 
       if (!res.ok) {
-        setErr(body.error || "Failed to update");
+        let message = "Failed to update";
+
+        // Try to read JSON error if present, but don't crash if it fails
+        try {
+          const payload = await res.json();
+          if (payload?.error) {
+            message = payload.error;
+          }
+        } catch {
+          // ignore parse errors completely
+        }
+
+        setErr(message);
         return;
       }
 
@@ -96,14 +123,12 @@ export default function AdminPage() {
     )
   ).sort();
 
-  // Helper: full address string
   function getFullAddress(p: AdminPlace): string {
     const address = p.address ?? "";
     const suburbPart = p.suburb ? `, ${p.suburb}` : "";
     return `${address}${suburbPart}`;
   }
 
-  // Helper: Google Maps search URL
   function getGoogleMapsUrl(p: AdminPlace): string {
     const full = getFullAddress(p);
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -111,7 +136,6 @@ export default function AdminPage() {
     )}`;
   }
 
-  // Helper: copy address
   async function handleCopyAddress(p: AdminPlace) {
     const full = getFullAddress(p);
     try {
@@ -122,21 +146,17 @@ export default function AdminPage() {
     }
   }
 
-  // 🔄 Helper: apply searching + filtering + sorting
   function process(list: AdminPlace[]): AdminPlace[] {
     let result = [...list];
 
-    // Filter by suburb
     if (filterSuburb !== "all") {
       result = result.filter((p) => p.suburb === filterSuburb);
     }
 
-    // Filter by season
     if (filterSeason !== "all") {
       result = result.filter((p) => p.season === filterSeason);
     }
 
-    // Search
     const q = search.toLowerCase();
     if (q.trim() !== "") {
       result = result.filter(
@@ -149,7 +169,6 @@ export default function AdminPage() {
       );
     }
 
-    // Sort
     result.sort((a, b) => {
       const dA = new Date(a.created_at).getTime();
       const dB = new Date(b.created_at).getTime();
@@ -166,9 +185,8 @@ export default function AdminPage() {
     <main className="max-w-5xl mx-auto p-6">
       <h1 className="text-2xl font-semibold mb-4">Admin — Manage Displays</h1>
 
-      {/* 🔎 SEARCH + FILTERS */}
+      {/* SEARCH + FILTERS */}
       <div className="bg-white border rounded-xl p-4 mb-6 shadow-sm">
-        {/* Search */}
         <div className="mb-3">
           <input
             value={search}
@@ -179,11 +197,13 @@ export default function AdminPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 text-sm">
-          {/* Season Filter */}
           <select
             value={filterSeason}
             onChange={(e) =>
-              setFilterSeason(e.target.value as "all" | "christmas" | "halloween")
+              setFilterSeason(e.target.value as
+                | "all"
+                | "christmas"
+                | "halloween")
             }
             className="border rounded-lg px-3 py-2"
           >
@@ -192,7 +212,6 @@ export default function AdminPage() {
             <option value="halloween">Halloween</option>
           </select>
 
-          {/* Suburb Filter */}
           <select
             value={filterSuburb}
             onChange={(e) => setFilterSuburb(e.target.value || "all")}
@@ -206,7 +225,6 @@ export default function AdminPage() {
             ))}
           </select>
 
-          {/* Sort Order */}
           <select
             value={sortOrder}
             onChange={(e) =>
@@ -236,7 +254,7 @@ export default function AdminPage() {
 
       {!loading && (
         <>
-          {/* Pending section */}
+          {/* Pending */}
           <section className="mb-10">
             <div
               className="flex items-center justify-between mb-3 cursor-pointer select-none"
@@ -275,40 +293,32 @@ export default function AdminPage() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      {/* ADDRESS */}
                       <div className="font-semibold text-base">
                         {p.hide_number
                           ? p.address.replace(/^\d+\s*/, "")
                           : p.address}
                       </div>
-
-                      {/* SUBURB */}
                       {p.suburb && (
                         <div className="text-xs text-gray-500 uppercase tracking-wide">
                           {p.suburb}
                         </div>
                       )}
-
-                      {/* SEASON */}
                       <div className="text-xs text-gray-400 mt-1">
                         Season: {p.season}
                       </div>
                     </div>
 
-                    {/* STATUS BADGE */}
                     <span className="text-yellow-700 bg-yellow-100 border border-yellow-200 text-xs px-2 py-1 rounded-full">
                       PENDING
                     </span>
                   </div>
 
-                  {/* DESCRIPTION */}
                   {p.description && (
                     <p className="text-sm text-gray-700 mb-3 line-clamp-2">
                       {p.description}
                     </p>
                   )}
 
-                  {/* CONTACT BLOCK */}
                   <div className="text-xs text-gray-600 mb-3 space-y-1 border-t pt-3">
                     <div>
                       <strong>Name:</strong> {p.contact_name || "—"}
@@ -324,7 +334,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* QUICK ACTIONS */}
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
                     <button
                       type="button"
@@ -355,7 +364,6 @@ export default function AdminPage() {
                     </a>
                   </div>
 
-                  {/* ACTION BUTTONS */}
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => updateStatus(p.id, "approved")}
@@ -375,7 +383,7 @@ export default function AdminPage() {
             </div>
           </section>
 
-          {/* Approved section */}
+          {/* Approved */}
           <section>
             <div
               className="flex items-center justify-between mb-3 cursor-pointer select-none"
@@ -419,25 +427,20 @@ export default function AdminPage() {
                           ? p.address.replace(/^\d+\s*/, "")
                           : p.address}
                       </div>
-
                       {p.suburb && (
                         <div className="text-xs text-gray-500 uppercase tracking-wide">
                           {p.suburb}
                         </div>
                       )}
-
                       <div className="text-xs text-gray-400 mt-1">
                         Season: {p.season}
                       </div>
                     </div>
-
-                    {/* STATUS BADGE */}
                     <span className="text-green-700 bg-green-100 border border-green-200 text-xs px-2 py-1 rounded-full">
                       APPROVED
                     </span>
                   </div>
 
-                  {/* CONTACT */}
                   <div className="text-xs text-gray-600 mb-3 space-y-1 border-t pt-3">
                     <div>
                       <strong>Name:</strong> {p.contact_name || "—"}
@@ -453,7 +456,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* QUICK ACTIONS */}
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
                     <button
                       type="button"
@@ -484,7 +486,6 @@ export default function AdminPage() {
                     </a>
                   </div>
 
-                  {/* ACTION BUTTON */}
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => updateStatus(p.id, "rejected")}
