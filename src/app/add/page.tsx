@@ -97,7 +97,7 @@ export default function AddPage() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/submit", {
+           const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -123,8 +123,27 @@ export default function AddPage() {
         return;
       }
 
+      // ✅ At this point, the place was saved successfully.
+      // Fire off an admin notification in the background.
+      try {
+        await fetch("/api/notify-admin-new-place", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            // These field names line up with what the Edge Function expects
+            title: form.address,
+            suburb: form.suburb || null,
+            season: "christmas", // or detect dynamically if you like
+          }),
+        });
+      } catch (notifyErr) {
+        console.error("Failed to notify admins:", notifyErr);
+        // Don't show an error – the submission itself was successful.
+      }
+
       setSaved(true);
       setTimeout(() => router.push("/map"), 1200);
+
     } catch (e: any) {
       setError(e?.message || "Failed to save");
     } finally {
