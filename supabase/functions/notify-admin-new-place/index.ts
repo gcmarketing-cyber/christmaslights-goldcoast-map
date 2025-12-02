@@ -9,6 +9,7 @@ const ADMIN_EMAILS = [
   "goldcoast@allpropertiesgroup.com.au",
   "gc.marketing@allpropertiesgroup.com.au",
   "nathan.simon@allpropertiesgroup.com.au",
+  "nathan@allpropertiesgroup.com.au"
 ];
 
 serve(async (req) => {
