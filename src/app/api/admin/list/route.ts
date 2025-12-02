@@ -46,8 +46,26 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    const pending = (data || []).filter((p) => p.status === "pending");
-    const approved = (data || []).filter((p) => p.status === "approved");
+    // 🔧 Normalise rows so the frontend always gets `address`
+    const cleaned = (data || []).map((row: any) => ({
+      id: String(row.id),
+      address: String(row.title ?? ""), // 👈 use title as address
+      suburb: row.suburb ?? null,
+      description: row.description ?? null,
+      season: row.season ?? "christmas",
+      status: row.status ?? "pending",
+      open_start: row.open_start ?? null,
+      open_end: row.open_end ?? null,
+      hide_number: row.hide_number ?? false,
+      created_at: row.created_at ?? new Date().toISOString(),
+      contact_name: row.contact_name ?? null,
+      contact_email: row.contact_email ?? null,
+      contact_phone: row.contact_phone ?? null,
+      is_owner: row.is_owner ?? null,
+    }));
+
+    const pending = cleaned.filter((p) => p.status === "pending");
+    const approved = cleaned.filter((p) => p.status === "approved");
 
     return NextResponse.json({ pending, approved });
   } catch (e: any) {

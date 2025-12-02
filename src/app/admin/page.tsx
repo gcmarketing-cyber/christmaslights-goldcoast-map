@@ -293,11 +293,19 @@ export default function AdminPage() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <div className="font-semibold text-base">
-                        {p.hide_number
-                          ? p.address.replace(/^\d+\s*/, "")
-                          : p.address}
-                      </div>
+                      {(() => {
+  const raw = p.address || "";
+  const displayAddress = p.hide_number
+    ? raw.replace(/^\d+\s*/, "")
+    : raw || "(No address provided)";
+
+  return (
+    <div className="font-semibold text-base">
+      {displayAddress}
+    </div>
+  );
+})()}
+
                       {p.suburb && (
                         <div className="text-xs text-gray-500 uppercase tracking-wide">
                           {p.suburb}
@@ -422,11 +430,19 @@ export default function AdminPage() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <div className="font-semibold text-base">
-                        {p.hide_number
-                          ? p.address.replace(/^\d+\s*/, "")
-                          : p.address}
-                      </div>
+                      {(() => {
+  const raw = p.address || "";
+  const displayAddress = p.hide_number
+    ? raw.replace(/^\d+\s*/, "")
+    : raw || "(No address provided)";
+
+  return (
+    <div className="font-semibold text-base">
+      {displayAddress}
+    </div>
+  );
+})()}
+
                       {p.suburb && (
                         <div className="text-xs text-gray-500 uppercase tracking-wide">
                           {p.suburb}
