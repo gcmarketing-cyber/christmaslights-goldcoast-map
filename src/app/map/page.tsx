@@ -855,7 +855,7 @@ export default function MapPage() {
           <div ref={mapContainerRef} className="w-full h-full" />
 
           {/* 🧭 My Run panel */}
-          <div className="absolute bottom-4 right-2 sm:right-4 max-w-[90vw] sm:max-w-xs text-sm">
+          <div className="absolute right-2 sm:right-4 max-w-[90vw] sm:max-w-xs text-sm bottom-[5.5rem] sm:bottom-4">
             {/* Trigger buttons only when panel is CLOSED */}
             {!runOpen && (
               <>
