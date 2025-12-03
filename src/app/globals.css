@@ -131,3 +131,10 @@ body {
   animation: runPulse 0.28s ease-out;
 }
 
+/* Nudge Mapbox zoom controls up so they're closer to the header */
+.mapboxgl-ctrl-top-right {
+  top: 12px !important;   /* match the All displays pill */
+  right: 10px !important;
+}
+
+

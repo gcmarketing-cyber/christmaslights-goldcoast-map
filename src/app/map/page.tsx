@@ -164,6 +164,7 @@ export default function MapPage() {
 
       // Single filter button (cycles All → Lights → Top 10)
       const openBtn = document.createElement("button");
+      openBtn.style.top = "12px";
       openBtn.style.position = "absolute";
       openBtn.style.top = "70px"; // under header
       openBtn.style.left = "10px";
