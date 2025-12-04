@@ -231,8 +231,6 @@ export default function AddPage() {
   inputMode="email"
   autoComplete="email"
   spellCheck="false"
-  pattern="^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
-  title="Please enter a valid email address"
 />
 
             </div>

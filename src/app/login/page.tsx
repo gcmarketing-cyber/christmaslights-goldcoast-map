@@ -65,6 +65,8 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Your email address"
               className="w-full border rounded px-3 py-2"
+              inputMode="email"
+              autoComplete="email"
             />
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
