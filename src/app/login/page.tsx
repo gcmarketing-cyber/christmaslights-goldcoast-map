@@ -9,15 +9,27 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Simple email validation regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
+    const cleaned = email.trim();
+
+    // 🚫 Prevents bad emails going to Supabase
+    if (!emailRegex.test(cleaned)) {
+      setError("Please enter a valid email address.");
+      setLoading(false);
+      return;
+    }
+
     const supabase = supabaseBrowser();
 
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: cleaned,
       options: {
         emailRedirectTo: `${window.location.origin}/map`
       }
@@ -36,9 +48,7 @@ export default function LoginPage() {
     <div className="max-w-md mx-auto pt-28 pb-10 px-6 text-center">
       {!sent ? (
         <>
-          <h1 className="text-2xl font-bold mb-4">
-            Verify your email to vote
-          </h1>
+          <h1 className="text-2xl font-bold mb-4">Verify your email to vote</h1>
 
           <p className="text-gray-600 text-sm mb-6">
             To keep voting fair and prevent spam, we use secure
@@ -70,9 +80,7 @@ export default function LoginPage() {
         </>
       ) : (
         <div>
-          <h2 className="text-xl font-semibold mb-4">
-            Check your email 📬
-          </h2>
+          <h2 className="text-xl font-semibold mb-4">Check your email 📬</h2>
           <p className="text-gray-600 text-sm">
             We've sent a secure link to <strong>{email}</strong>.<br />
             Click it to verify your email and start voting.

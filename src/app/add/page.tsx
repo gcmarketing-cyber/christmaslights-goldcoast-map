@@ -96,8 +96,18 @@ export default function AddPage() {
     setSaved(false);
     setIsSubmitting(true);
 
+    // 🔎 Basic email validation to avoid bounces
+    const email = form.contact_email?.trim() || "";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-           const res = await fetch("/api/submit", {
+      const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,7 +121,7 @@ export default function AddPage() {
           hide_number: form.hide_number,
           is_owner: form.owner_type === "owner",
           contact_name: form.contact_name,
-          contact_email: form.contact_email,
+          contact_email: email, // use cleaned email
           contact_phone: form.contact_phone || null,
         }),
       });
@@ -130,10 +140,9 @@ export default function AddPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            // These field names line up with what the Edge Function expects
             title: form.address,
             suburb: form.suburb || null,
-            season: "christmas", // or detect dynamically if you like
+            season: "christmas",
           }),
         });
       } catch (notifyErr) {
@@ -143,7 +152,6 @@ export default function AddPage() {
 
       setSaved(true);
       setTimeout(() => router.push("/map"), 1200);
-
     } catch (e: any) {
       setError(e?.message || "Failed to save");
     } finally {
@@ -153,11 +161,11 @@ export default function AddPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-6">
-      <div className="flex justify-center mb-4">
+      <div className="flex justify-center mb-4"></div>
 
-      </div>
-
-      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#b00824] mb-4 text-center uppercase">Add a Display</h1>
+      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#b00824] mb-4 text-center uppercase">
+        Add a Display
+      </h1>
       <p className="text-sm text-gray-700 mb-4">
         You don&apos;t need an account to add a display, but we do need your
         contact details so we can get in touch if your display wins a prize.
@@ -214,20 +222,24 @@ export default function AddPage() {
                 Email address
               </label>
               <input
-                type="email"
-                className="w-full border rounded px-3 py-2 text-sm"
-                name="contact_email"
-                value={form.contact_email}
-                onChange={onChange}
-                required
-              />
+  type="email"
+  className="w-full border rounded px-3 py-2 text-sm"
+  name="contact_email"
+  value={form.contact_email}
+  onChange={onChange}
+  required
+  inputMode="email"
+  autoComplete="email"
+  spellCheck="false"
+  pattern="^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+  title="Please enter a valid email address"
+/>
+
             </div>
           </div>
 
           <div className="mt-3">
-            <label className="block mb-1 text-sm font-medium">
-              Phone
-            </label>
+            <label className="block mb-1 text-sm font-medium">Phone</label>
             <input
               className="w-full border rounded px-3 py-2 text-sm"
               name="contact_phone"
@@ -360,11 +372,10 @@ export default function AddPage() {
         </section>
 
         <button
-  type="submit"
-  disabled={isSubmitting}
-  className="mt-2 btn-xmas disabled:opacity-60"
->
-
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-2 btn-xmas disabled:opacity-60"
+        >
           {isSubmitting ? "Saving…" : "Submit for approval"}
         </button>
       </form>
