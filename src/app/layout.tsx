@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 const ADMIN_EMAILS = [
   "goldcoast@allpropertiesgroup.com.au",
   "gc.marketing@allpropertiesgroup.com.au",
+  "nathan.simon@allpropertiesgroup.com.au",
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -99,6 +100,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   alt="All Properties Group Gold Coast"
                   width={150}
                   height={32}
+                  loading="eager"
+                  priority
                 />
               </div>
             </nav>
@@ -263,6 +266,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   alt="All Properties Group Gold Coast"
                   width={150}
                   height={40}
+                  style={{ height: "auto" }}  // let width control the size
                 />
               </div>
             </div>
