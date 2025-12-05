@@ -33,11 +33,23 @@ function stripHouseNumber(address: string) {
   return address.replace(/^\s*\d+\s+/, "");
 }
 
+// 👇 Normalise suburbs so "Upper coomera" / "upper Coomera" etc become one key
+function normalizeSuburbName(name: string) {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export default function LeaderboardPage() {
   const [items, setItems] = useState<RankedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [suburbFilter, setSuburbFilter] = useState<string>("all");
+
+  // suburbFilterKey is the *normalised* suburb key
+  const [suburbFilterKey, setSuburbFilterKey] = useState<string>("all");
+  // [key, label] → ["upper coomera", "Upper Coomera"]
+  const [suburbOptions, setSuburbOptions] = useState<Array<[string, string]>>(
+    []
+  );
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Fetch leaderboard
@@ -72,6 +84,21 @@ export default function LeaderboardPage() {
           }));
 
         setItems(ranked);
+
+        // 👇 Build *deduped* suburb options using normalised keys
+        const suburbMap = new Map<string, string>();
+        for (const item of ranked) {
+          if (!item.suburb) continue;
+          const key = normalizeSuburbName(item.suburb);
+          if (!suburbMap.has(key)) {
+            suburbMap.set(key, item.suburb.trim());
+          }
+        }
+        const options = Array.from(suburbMap.entries()).sort((a, b) =>
+          a[1].localeCompare(b[1])
+        );
+        setSuburbOptions(options);
+
         setLoading(false);
       } catch (e: any) {
         setErr(e?.message || "Failed to load leaderboard");
@@ -82,13 +109,12 @@ export default function LeaderboardPage() {
     load();
   }, []);
 
-  // Suburb list from data
-  const suburbs = Array.from(
-    new Set(items.map((i) => i.suburb).filter(Boolean) as string[])
-  ).sort();
-
+  // Apply suburb filter using the normalised key
   const filtered = items.filter((item) =>
-    suburbFilter === "all" ? true : item.suburb === suburbFilter
+    suburbFilterKey === "all"
+      ? true
+      : item.suburb &&
+        normalizeSuburbName(item.suburb) === suburbFilterKey
   );
 
   // Shared RUN_KEY with the map – add to localStorage
@@ -147,27 +173,27 @@ export default function LeaderboardPage() {
       </p>
 
       {/* Filters */}
-            {/* Filters */}
       <div className="mb-6">
         <div className="flex flex-col items-center sm:flex-row sm:items-center sm:gap-3">
           <label className="text-sm text-gray-700 font-medium mb-2 sm:mb-0 sm:mr-2 text-center sm:text-left">
             Filter by suburb:
           </label>
           <select
-            value={suburbFilter}
-            onChange={(e) => setSuburbFilter(e.target.value)}
+            value={suburbFilterKey}
+            onChange={(e) =>
+              setSuburbFilterKey(e.target.value || "all")
+            }
             className="border rounded-full px-3 py-1.5 text-sm bg-white shadow-sm w-full sm:w-auto"
           >
             <option value="all">All suburbs</option>
-            {suburbs.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            {suburbOptions.map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
               </option>
             ))}
           </select>
         </div>
       </div>
-
 
       {err && (
         <div className="mb-4 rounded border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
@@ -210,9 +236,7 @@ export default function LeaderboardPage() {
               {/* Top row: rank + title, votes + vote button */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  {/* Rank badge:
-                      1–3 → medal emoji
-                      4+ → simple numbered circle (works for 11, 25, etc) */}
+                  {/* Rank badge */}
                   <div className="flex flex-col items-center mt-1 min-w-[36px]">
                     {item.rank <= 3 ? (
                       <div className="w-10 h-10 flex items-center justify-center text-2xl">
@@ -275,7 +299,7 @@ export default function LeaderboardPage() {
                   View on map
                 </Link>
 
-                {/* Details now toggles inline description, no full page link */}
+                {/* Details now toggles inline description */}
                 <button
                   type="button"
                   onClick={() =>

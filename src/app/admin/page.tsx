@@ -50,16 +50,12 @@ export default function AdminPage() {
       try {
         body = await res.json();
       } catch (e) {
-        console.error(
-          "Failed to parse /api/admin/list response as JSON",
-          e
-        );
+        console.error("Failed to parse /api/admin/list response as JSON", e);
       }
 
       if (!res.ok || !body) {
         setErr(
-          body?.error ||
-            `Failed to load admin list (status ${res.status}).`
+          body?.error || `Failed to load admin list (status ${res.status}).`
         );
         setLoading(false);
         return;
@@ -200,10 +196,9 @@ export default function AdminPage() {
           <select
             value={filterSeason}
             onChange={(e) =>
-              setFilterSeason(e.target.value as
-                | "all"
-                | "christmas"
-                | "halloween")
+              setFilterSeason(
+                e.target.value as "all" | "christmas" | "halloween"
+              )
             }
             className="border rounded-lg px-3 py-2"
           >
@@ -278,117 +273,113 @@ export default function AdminPage() {
               </p>
             )}
 
-            <div
-              className="space-y-4 transition-all duration-300"
-              style={{
-                maxHeight: pendingOpen ? "2000px" : "0px",
-                overflow: "hidden",
-                opacity: pendingOpen ? 1 : 0,
-              }}
-            >
-              {pendingProcessed.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-4 bg-white rounded-xl border mb-3 shadow-sm"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      {(() => {
-  const raw = p.address || "";
-  const displayAddress = p.hide_number
-    ? raw.replace(/^\d+\s*/, "")
-    : raw || "(No address provided)";
+            {pendingOpen && (
+              <div className="space-y-4">
+                {pendingProcessed.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-4 bg-white rounded-xl border mb-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        {(() => {
+                          const raw = p.address || "";
+                          const displayAddress = p.hide_number
+                            ? raw.replace(/^\d+\s*/, "")
+                            : raw || "(No address provided)";
 
-  return (
-    <div className="font-semibold text-base">
-      {displayAddress}
-    </div>
-  );
-})()}
+                          return (
+                            <div className="font-semibold text-base">
+                              {displayAddress}
+                            </div>
+                          );
+                        })()}
 
-                      {p.suburb && (
-                        <div className="text-xs text-gray-500 uppercase tracking-wide">
-                          {p.suburb}
+                        {p.suburb && (
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                            {p.suburb}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-400 mt-1">
+                          Season: {p.season}
                         </div>
-                      )}
-                      <div className="text-xs text-gray-400 mt-1">
-                        Season: {p.season}
+                      </div>
+
+                      <span className="text-yellow-700 bg-yellow-100 border border-yellow-200 text-xs px-2 py-1 rounded-full">
+                        PENDING
+                      </span>
+                    </div>
+
+                    {p.description && (
+                      <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+                        {p.description}
+                      </p>
+                    )}
+
+                    <div className="text-xs text-gray-600 mb-3 space-y-1 border-t pt-3">
+                      <div>
+                        <strong>Name:</strong> {p.contact_name || "—"}
+                      </div>
+                      <div>
+                        <strong>Email:</strong> {p.contact_email || "—"}
+                      </div>
+                      <div>
+                        <strong>Phone:</strong> {p.contact_phone || "—"}
+                      </div>
+                      <div>
+                        <strong>Owner?</strong>{" "}
+                        {p.is_owner ? "Yes" : "Nominated"}
                       </div>
                     </div>
 
-                    <span className="text-yellow-700 bg-yellow-100 border border-yellow-200 text-xs px-2 py-1 rounded-full">
-                      PENDING
-                    </span>
-                  </div>
-
-                  {p.description && (
-                    <p className="text-sm text-gray-700 mb-3 line-clamp-2">
-                      {p.description}
-                    </p>
-                  )}
-
-                  <div className="text-xs text-gray-600 mb-3 space-y-1 border-t pt-3">
-                    <div>
-                      <strong>Name:</strong> {p.contact_name || "—"}
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyAddress(p)}
+                        className="underline hover:text-gray-800"
+                      >
+                        Copy address
+                      </button>
+                      <a
+                        href={getGoogleMapsUrl(p)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-gray-800"
+                      >
+                        Open in Google Maps
+                      </a>
+                      <a
+                        href={`/map?id=${p.id}`}
+                        className="underline hover:text-gray-800"
+                      >
+                        Open on map
+                      </a>
+                      <a
+                        href={`/place/${p.id}`}
+                        className="underline hover:text-gray-800"
+                      >
+                        View full details
+                      </a>
                     </div>
-                    <div>
-                      <strong>Email:</strong> {p.contact_email || "—"}
-                    </div>
-                    <div>
-                      <strong>Phone:</strong> {p.contact_phone || "—"}
-                    </div>
-                    <div>
-                      <strong>Owner?</strong> {p.is_owner ? "Yes" : "Nominated"}
-                    </div>
-                  </div>
 
-                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyAddress(p)}
-                      className="underline hover:text-gray-800"
-                    >
-                      Copy address
-                    </button>
-                    <a
-                      href={getGoogleMapsUrl(p)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-gray-800"
-                    >
-                      Open in Google Maps
-                    </a>
-                    <a
-                      href={`/map?id=${p.id}`}
-                      className="underline hover:text-gray-800"
-                    >
-                      Open on map
-                    </a>
-                    <a
-                      href={`/place/${p.id}`}
-                      className="underline hover:text-gray-800"
-                    >
-                      View full details
-                    </a>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => updateStatus(p.id, "approved")}
+                        className="px-3 py-1.5 rounded-full bg-green-600 text-white text-xs"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => updateStatus(p.id, "rejected")}
+                        className="px-3 py-1.5 rounded-full bg-red-600 text-white text-xs"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => updateStatus(p.id, "approved")}
-                      className="px-3 py-1.5 rounded-full bg-green-600 text-white text-xs"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => updateStatus(p.id, "rejected")}
-                      className="px-3 py-1.5 rounded-full bg-red-600 text-white text-xs"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Approved */}
@@ -415,104 +406,101 @@ export default function AdminPage() {
               </p>
             )}
 
-            <div
-              className="space-y-4 transition-all duration-300"
-              style={{
-                maxHeight: approvedOpen ? "2000px" : "0px",
-                overflow: "hidden",
-                opacity: approvedOpen ? 1 : 0,
-              }}
-            >
-              {approvedProcessed.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-4 bg-white rounded-xl border mb-3 shadow-sm"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      {(() => {
-  const raw = p.address || "";
-  const displayAddress = p.hide_number
-    ? raw.replace(/^\d+\s*/, "")
-    : raw || "(No address provided)";
+            {approvedOpen && (
+              <div className="space-y-4">
+                {approvedProcessed.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-4 bg-white rounded-xl border mb-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        {(() => {
+                          const raw = p.address || "";
+                          const displayAddress = p.hide_number
+                            ? raw.replace(/^\d+\s*/, "")
+                            : raw || "(No address provided)";
 
-  return (
-    <div className="font-semibold text-base">
-      {displayAddress}
-    </div>
-  );
-})()}
+                          return (
+                            <div className="font-semibold text-base">
+                              {displayAddress}
+                            </div>
+                          );
+                        })()}
 
-                      {p.suburb && (
-                        <div className="text-xs text-gray-500 uppercase tracking-wide">
-                          {p.suburb}
+                        {p.suburb && (
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                            {p.suburb}
+                          </div>
+                        )}
+
+                        <div className="text-xs text-gray-400 mt-1">
+                          Season: {p.season}
                         </div>
-                      )}
-                      <div className="text-xs text-gray-400 mt-1">
-                        Season: {p.season}
+                      </div>
+                      <span className="text-green-700 bg-green-100 border border-green-200 text-xs px-2 py-1 rounded-full">
+                        APPROVED
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-gray-600 mb-3 space-y-1 border-t pt-3">
+                      <div>
+                        <strong>Name:</strong> {p.contact_name || "—"}
+                      </div>
+                      <div>
+                        <strong>Email:</strong> {p.contact_email || "—"}
+                      </div>
+                      <div>
+                        <strong>Phone:</strong> {p.contact_phone || "—"}
+                      </div>
+                      <div>
+                        <strong>Owner?</strong>{" "}
+                        {p.is_owner ? "Yes" : "Nominated"}
                       </div>
                     </div>
-                    <span className="text-green-700 bg-green-100 border border-green-200 text-xs px-2 py-1 rounded-full">
-                      APPROVED
-                    </span>
-                  </div>
 
-                  <div className="text-xs text-gray-600 mb-3 space-y-1 border-t pt-3">
-                    <div>
-                      <strong>Name:</strong> {p.contact_name || "—"}
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyAddress(p)}
+                        className="underline hover:text-gray-800"
+                      >
+                        Copy address
+                      </button>
+                      <a
+                        href={getGoogleMapsUrl(p)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-gray-800"
+                      >
+                        Open in Google Maps
+                      </a>
+                      <a
+                        href={`/map?id=${p.id}`}
+                        className="underline hover:text-gray-800"
+                      >
+                        Open on map
+                      </a>
+                      <a
+                        href={`/place/${p.id}`}
+                        className="underline hover:text-gray-800"
+                      >
+                        View full details
+                      </a>
                     </div>
-                    <div>
-                      <strong>Email:</strong> {p.contact_email || "—"}
-                    </div>
-                    <div>
-                      <strong>Phone:</strong> {p.contact_phone || "—"}
-                    </div>
-                    <div>
-                      <strong>Owner?</strong> {p.is_owner ? "Yes" : "Nominated"}
-                    </div>
-                  </div>
 
-                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyAddress(p)}
-                      className="underline hover:text-gray-800"
-                    >
-                      Copy address
-                    </button>
-                    <a
-                      href={getGoogleMapsUrl(p)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-gray-800"
-                    >
-                      Open in Google Maps
-                    </a>
-                    <a
-                      href={`/map?id=${p.id}`}
-                      className="underline hover:text-gray-800"
-                    >
-                      Open on map
-                    </a>
-                    <a
-                      href={`/place/${p.id}`}
-                      className="underline hover:text-gray-800"
-                    >
-                      View full details
-                    </a>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => updateStatus(p.id, "rejected")}
+                        className="px-3 py-1.5 rounded-full bg-red-600 text-white text-xs"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => updateStatus(p.id, "rejected")}
-                      className="px-3 py-1.5 rounded-full bg-red-600 text-white text-xs"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         </>
       )}
