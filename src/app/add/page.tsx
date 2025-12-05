@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Logo } from "@/components/Logo";
 
 type FormState = {
   address: string;
   description: string;
-  lat: string;
+  lat: string;   // stored as text in the form, converted on submit
   lng: string;
   suburb: string;
   open_start: string;
@@ -19,14 +18,21 @@ type FormState = {
   contact_phone: string;
 };
 
+type GeocodeResult = {
+  lat: number;
+  lng: number;
+  suburb: string | null;
+  place_name: string | null;
+};
+
 export default function AddPage() {
   const router = useRouter();
 
   const [form, setForm] = useState<FormState>({
     address: "",
     description: "",
-    lat: "-27.93",
-    lng: "153.32",
+    lat: "",      // ⬅️ no more default coordinates
+    lng: "",
     suburb: "",
     open_start: "",
     open_end: "",
@@ -57,36 +63,58 @@ export default function AddPage() {
     setForm((f) => ({ ...f, owner_type: value }));
   }
 
-  async function geocode() {
+  /**
+   * Geocode helper:
+   * - calls /api/geocode
+   * - updates the form state
+   * - returns the lat/lng data so onSubmit can use it immediately
+   */
+  async function geocode(): Promise<GeocodeResult | null> {
     if (!form.address.trim()) {
       setError("Please enter an address first.");
-      return;
+      return null;
     }
 
     setLookupMsg("Looking up address…");
     setError(null);
+
     try {
       const res = await fetch(
         `/api/geocode?q=${encodeURIComponent(form.address)}`
       );
       const data = await res.json();
+
       if (!res.ok) {
         setLookupMsg(null);
-        setError(data.error || "Address not found");
-        return;
+        setError(data.error || "Address not found. Try including suburb + QLD.");
+        return null;
       }
+
+      // Normalise/round a little (6 decimal places is plenty)
+      const lat = Number(data.lat.toFixed ? data.lat.toFixed(6) : data.lat);
+      const lng = Number(data.lng.toFixed ? data.lng.toFixed(6) : data.lng);
+
+      const geo: GeocodeResult = {
+        lat,
+        lng,
+        suburb: data.suburb || null,
+        place_name: data.place_name || null,
+      };
 
       setForm((f) => ({
         ...f,
-        lat: String(data.lat),
-        lng: String(data.lng),
-        suburb: data.suburb || f.suburb,
-        address: data.place_name || f.address,
+        lat: String(geo.lat),
+        lng: String(geo.lng),
+        suburb: geo.suburb ?? f.suburb,
+        address: geo.place_name || f.address,
       }));
-      setLookupMsg(`Found: ${data.place_name || "address"}`);
+
+      setLookupMsg(`Found: ${geo.place_name || "address"}`);
+      return geo;
     } catch (e: any) {
       setLookupMsg(null);
       setError(e?.message || "Lookup failed");
+      return null;
     }
   }
 
@@ -96,32 +124,37 @@ export default function AddPage() {
     setSaved(false);
     setIsSubmitting(true);
 
-    // 🔎 Basic email validation to avoid bounces
-    const email = form.contact_email?.trim() || "";
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
+      // ✅ Ensure we have valid coordinates before saving
+      let lat = parseFloat(form.lat);
+      let lng = parseFloat(form.lng);
+
+      if (!form.lat || !form.lng || Number.isNaN(lat) || Number.isNaN(lng)) {
+        const geo = await geocode(); // this also updates state
+        if (!geo) {
+          // Geocode failed – don’t submit yet
+          setIsSubmitting(false);
+          return;
+        }
+        lat = geo.lat;
+        lng = geo.lng;
+      }
+
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           address: form.address,
           description: form.description,
-          lat: parseFloat(form.lat),
-          lng: parseFloat(form.lng),
+          lat,
+          lng,
           suburb: form.suburb || null,
           open_start: form.open_start || null,
           open_end: form.open_end || null,
           hide_number: form.hide_number,
           is_owner: form.owner_type === "owner",
           contact_name: form.contact_name,
-          contact_email: email, // use cleaned email
+          contact_email: form.contact_email,
           contact_phone: form.contact_phone || null,
         }),
       });
@@ -133,8 +166,7 @@ export default function AddPage() {
         return;
       }
 
-      // ✅ At this point, the place was saved successfully.
-      // Fire off an admin notification in the background.
+      // Fire off admin notification in the background (best-effort)
       try {
         await fetch("/api/notify-admin-new-place", {
           method: "POST",
@@ -147,7 +179,6 @@ export default function AddPage() {
         });
       } catch (notifyErr) {
         console.error("Failed to notify admins:", notifyErr);
-        // Don't show an error – the submission itself was successful.
       }
 
       setSaved(true);
@@ -161,8 +192,6 @@ export default function AddPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-6">
-      <div className="flex justify-center mb-4"></div>
-
       <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#b00824] mb-4 text-center uppercase">
         Add a Display
       </h1>
@@ -222,17 +251,13 @@ export default function AddPage() {
                 Email address
               </label>
               <input
-  type="email"
-  className="w-full border rounded px-3 py-2 text-sm"
-  name="contact_email"
-  value={form.contact_email}
-  onChange={onChange}
-  required
-  inputMode="email"
-  autoComplete="email"
-  spellCheck="false"
-/>
-
+                type="email"
+                className="w-full border rounded px-3 py-2 text-sm"
+                name="contact_email"
+                value={form.contact_email}
+                onChange={onChange}
+                required
+              />
             </div>
           </div>
 
@@ -261,13 +286,13 @@ export default function AddPage() {
                 name="address"
                 value={form.address}
                 onChange={onChange}
-                placeholder="e.g., 34 Annerley Road, Woolloongabba"
+                placeholder="e.g., 34 Annerley Road, Woolloongabba QLD"
                 required
               />
               <button
                 type="button"
                 onClick={geocode}
-                className="px-3 py-2 rounded bg-gray-200 text-sm"
+                className="px-3 py-2 rounded bg-gray-200 text-sm font-semibold"
               >
                 Find on map
               </button>
@@ -304,31 +329,8 @@ export default function AddPage() {
             />
           </div>
 
+          {/* Times + read-only coordinates */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Latitude
-              </label>
-              <input
-                className="w-full border rounded px-3 py-2 text-sm"
-                name="lat"
-                value={form.lat}
-                onChange={onChange}
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Longitude
-              </label>
-              <input
-                className="w-full border rounded px-3 py-2 text-sm"
-                name="lng"
-                value={form.lng}
-                onChange={onChange}
-                required
-              />
-            </div>
             <div>
               <label className="block mb-1 text-sm font-medium">
                 Open from
@@ -353,7 +355,37 @@ export default function AddPage() {
                 onChange={onChange}
               />
             </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-medium">
+                Latitude
+              </label>
+              <input
+                className="w-full border rounded px-3 py-2 text-xs bg-gray-50"
+                name="lat"
+                value={form.lat}
+                readOnly
+                placeholder="Auto-filled from Find on map"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium">
+                Longitude
+              </label>
+              <input
+                className="w-full border rounded px-3 py-2 text-xs bg-gray-50"
+                name="lng"
+                value={form.lng}
+                readOnly
+                placeholder="Auto-filled from Find on map"
+              />
+            </div>
           </div>
+
+          <p className="text-xs text-gray-500">
+            We use the coordinates to plot your house correctly on the map.
+            Tap <strong>Find on map</strong> if these are empty.
+          </p>
 
           <label className="inline-flex items-center gap-2 text-sm mt-2">
             <input
@@ -363,7 +395,7 @@ export default function AddPage() {
               onChange={onChange}
             />
             <span>
-              Hide the exact house number on the public map & leaderboard
+              Hide the exact house number on the public map &amp; leaderboard
               (street name + suburb only)
             </span>
           </label>
